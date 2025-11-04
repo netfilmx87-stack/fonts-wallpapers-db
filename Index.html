@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DextabDB - Font & Wallpaper Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e0e0e0; min-height: 100vh; }
+        .header { background: #111; border-bottom: 1px solid #222; padding: 1.5rem 2rem; }
+        .header h1 { font-size: 1.5rem; font-weight: 600; }
+        .tabs { display: flex; gap: 1rem; margin-top: 1rem; }
+        .tab { padding: 0.5rem 1rem; background: transparent; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s; }
+        .tab.active { background: #1a1a1a; border-color: #444; color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .upload-box { background: #111; border: 2px dashed #333; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; }
+        .upload-box h2 { font-size: 1.2rem; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: #999; }
+        .form-group input[type="file"] { width: 100%; padding: 0.75rem; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; cursor: pointer; }
+        .btn { padding: 0.75rem 1.5rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        .font-card { background: #111; border: 1px solid #222; border-radius: 8px; padding: 1rem; }
+        .font-family { font-weight: 600; margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .font-preview { font-size: 1.5rem; margin: 0.5rem 0; }
+        .font-variants { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.5rem 0; }
+        .variant-tag { padding: 0.25rem 0.5rem; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; font-size: 0.75rem; color: #888; }
+        .actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+        .btn-small { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        .empty { text-align: center; padding: 3rem; color: #666; }
+        .stats { display: flex; gap: 2rem; margin-bottom: 2rem; }
+        .stat-card { background: #111; border: 1px solid #222; border-radius: 8px; padding: 1rem; flex: 1; }
+        .stat-value { font-size: 2rem; font-weight: 600; color: #2563eb; }
+        .stat-label { font-size: 0.9rem; color: #888; margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DextabDB - Font & Wallpaper Manager</h1>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('fonts')">Fonts</button>
+            <button class="tab" onclick="switchTab('wallpapers')">Wallpapers</button>
+        </div>
+    </div>
+    <div class="container">
+        <div id="fontsSection" class="section active">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="fontFamilyCount">0</div>
+                    <div class="stat-label">Font Families</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="fontFileCount">0</div>
+                    <div class="stat-label">Total Files</div>
+                </div>
+            </div>
+            <div class="upload-box">
+                <h2>Upload Fonts</h2>
+                <form id="fontUploadForm">
+                    <div class="form-group">
+                        <label>Font Files (.ttf, .otf, .woff, .woff2)</label>
+                        <input type="file" id="fontFiles" accept=".ttf,.otf,.woff,.woff2" multiple required>
+                    </div>
+                    <button type="submit" class="btn">Upload Fonts</button>
+                    <button type="button" class="btn btn-danger" onclick="clearAllFonts()" style="margin-left: 0.5rem;">Clear All</button>
+                </form>
+            </div>
+            <div id="fontsGrid" class="grid"></div>
+        </div>
+        <div id="wallpapersSection" class="section">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="wallpaperCount">0</div>
+                    <div class="stat-label">Wallpapers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="defaultWallpaper">None</div>
+                    <div class="stat-label">Default</div>
+                </div>
+            </div>
+            <div class="upload-box">
+                <h2>Upload Wallpapers</h2>
+                <form id="wallpaperUploadForm">
+                    <div class="form-group">
+                        <label>Wallpaper Files (Images/Videos)</label>
+                        <input type="file" id="wallpaperFiles" accept="image/*,video/*" multiple required>
+                    </div>
+                    <div class="form-group">
+                        <label>Author Name (Optional)</label>
+                        <input type="text" id="authorName" style="width: 100%; padding: 0.75rem; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #e0e0e0;" placeholder="Author name">
+                    </div>
+                    <div class="form-group">
+                        <label>Author Link (Optional)</label>
+                        <input type="text" id="authorLink" style="width: 100%; padding: 0.75rem; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #e0e0e0;" placeholder="https://...">
+                    </div>
+                    <button type="submit" class="btn">Upload Wallpapers</button>
+                    <button type="button" class="btn btn-danger" onclick="clearAllWallpapers()" style="margin-left: 0.5rem;">Clear All</button>
+                </form>
+            </div>
+            <div id="wallpapersGrid" class="grid"></div>
+        </div>
+    </div>
+    <script>
+        const DB_NAME = 'DextabDB';
+        const FONT_STORE = 'fonts';
+        const WALLPAPER_STORE = 'wallpapers';
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 2);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => { db = request.result; resolve(db); };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(FONT_STORE)) {
+                        db.createObjectStore(FONT_STORE, { keyPath: 'name' });
+                    }
+                    if (!db.objectStoreNames.contains(WALLPAPER_STORE)) {
+                        db.createObjectStore(WALLPAPER_STORE, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+            });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Section').classList.add('active');
+        }
+
+        function groupFonts(fonts) {
+            const families = {};
+            fonts.forEach(font => {
+                const baseName = font.name.replace(/-Regular|-Bold|-Light|-Medium|-SemiBold|-ExtraBold|-Thin|-Black|-Italic|-Condensed|-Expanded/gi, '').trim();
+                if (!families[baseName]) families[baseName] = [];
+                families[baseName].push(font);
+            });
+            return families;
+        }
+
+        async function loadFonts() {
+            const tx = db.transaction([FONT_STORE], 'readonly');
+            const store = tx.objectStore(FONT_STORE);
+            const fonts = await new Promise((resolve) => {
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+
+            const families = groupFonts(fonts);
+            const familyCount = Object.keys(families).length;
+            
+            document.getElementById('fontFamilyCount').textContent = familyCount;
+            document.getElementById('fontFileCount').textContent = fonts.length;
+
+            const grid = document.getElementById('fontsGrid');
+            if (familyCount === 0) {
+                grid.innerHTML = '<div class="empty">No fonts uploaded yet</div>';
+                return;
+            }
+
+            grid.innerHTML = Object.entries(families).map(([family, variants]) => {
+                const variantNames = variants.map(v => v.name.replace(family, '').replace(/^-/, '') || 'Regular');
+                return `
+                    <div class="font-card">
+                        <div class="font-family">${family}</div>
+                        <div class="font-preview" style="font-family: '${variants[0].name}';">Aa</div>
+                        <div class="font-variants">
+                            ${variantNames.map(v => `<span class="variant-tag">${v}</span>`).join('')}
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-small btn-danger" onclick="deleteFamily('${family}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            fonts.forEach(f => {
+                const style = document.createElement('style');
+                style.textContent = `@font-face{font-family:'${f.name}';src:url(${f.data});}`;
+                document.head.appendChild(style);
+            });
+        }
+
+        document.getElementById('fontUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const files = document.getElementById('fontFiles').files;
+            if (!files.length) return;
+
+            for (const file of files) {
+                const data = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+
+                const name = file.name.replace(/\.[^/.]+$/, '');
+                const tx = db.transaction([FONT_STORE], 'readwrite');
+                await new Promise((resolve) => {
+                    const req = tx.objectStore(FONT_STORE).put({ name, data });
+                    req.onsuccess = resolve;
+                });
+            }
+
+            document.getElementById('fontUploadForm').reset();
+            loadFonts();
+            notifyExtension();
+        });
+
+        async function deleteFamily(family) {
+            if (!confirm(`Delete ${family} and all variants?`)) return;
+            
+            const tx = db.transaction([FONT_STORE], 'readwrite');
+            const store = tx.objectStore(FONT_STORE);
+            const fonts = await new Promise((resolve) => {
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+
+            fonts.forEach(f => {
+                if (f.name.startsWith(family)) store.delete(f.name);
+            });
+
+            await new Promise((resolve) => { tx.oncomplete = resolve; });
+            loadFonts();
+            notifyExtension();
+        }
+
+        async function clearAllFonts() {
+            if (!confirm('Delete ALL fonts? This cannot be undone!')) return;
+            const tx = db.transaction([FONT_STORE], 'readwrite');
+            tx.objectStore(FONT_STORE).clear();
+            await new Promise((resolve) => { tx.oncomplete = resolve; });
+            loadFonts();
+            notifyExtension();
+        }
+
+        function notifyExtension() {
+            console.log('[DextabDB] Auto-syncing to extension');
+            window.parent.postMessage({ type: 'fonts-updated' }, '*');
+            if (window.opener) window.opener.postMessage({ type: 'fonts-updated' }, '*');
+            try {
+                const bc = new BroadcastChannel('dextab-sync');
+                bc.postMessage({ type: 'fonts-updated' });
+                bc.close();
+            } catch(e) {}
+        }
+
+
+
+        document.getElementById('wallpaperUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const files = document.getElementById('wallpaperFiles').files;
+            if (!files.length) return;
+
+            const authorName = document.getElementById('authorName').value.trim();
+            const authorLink = document.getElementById('authorLink').value.trim();
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const data = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(file);
+                });
+
+                if (!data) continue;
+
+                const wallpaper = {
+                    type: file.type.startsWith('video') ? 'video' : 'image',
+                    data,
+                    authorName: authorName || 'Unknown',
+                    authorLink: authorLink || '',
+                    uploadDate: new Date().toISOString()
+                };
+
+                const tx = db.transaction([WALLPAPER_STORE], 'readwrite');
+                const store = tx.objectStore(WALLPAPER_STORE);
+                await new Promise((resolve, reject) => {
+                    const req = store.add(wallpaper);
+                    req.onsuccess = resolve;
+                    req.onerror = reject;
+                });
+            }
+
+            document.getElementById('wallpaperUploadForm').reset();
+            loadWallpapers();
+        });
+
+        async function loadWallpapers() {
+            const tx = db.transaction([WALLPAPER_STORE], 'readonly');
+            const wallpapers = await new Promise((resolve) => {
+                const req = tx.objectStore(WALLPAPER_STORE).getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+
+            const defaultWp = wallpapers.find(w => w.isDefault);
+            document.getElementById('wallpaperCount').textContent = wallpapers.length;
+            document.getElementById('defaultWallpaper').textContent = defaultWp ? 'Set' : 'None';
+
+            const grid = document.getElementById('wallpapersGrid');
+            if (wallpapers.length === 0) {
+                grid.innerHTML = '<div class="empty">No wallpapers uploaded yet</div>';
+                return;
+            }
+
+            grid.innerHTML = wallpapers.map(w => `
+                <div class="font-card" style="${w.isDefault ? 'border-color: #2563eb;' : ''}">
+                    ${w.type === 'video' ? 
+                        `<video style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 0.5rem;" src="${w.data}" muted loop autoplay></video>` : 
+                        `<img style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 0.5rem;" src="${w.data}">`
+                    }
+                    <div style="font-size: 0.85rem; color: #888; margin-bottom: 0.5rem;">
+                        ${w.authorName !== 'Unknown' ? `By ${w.authorLink ? `<a href="${w.authorLink}" target="_blank" style="color: #2563eb;">${w.authorName}</a>` : w.authorName}` : 'Unknown author'}
+                    </div>
+                    ${w.isDefault ? '<div style="color: #2563eb; font-size: 0.85rem; margin-bottom: 0.5rem;">★ Default</div>' : ''}
+                    <div class="actions">
+                        <button class="btn btn-small" onclick="setDefaultWallpaper(${w.id})">${w.isDefault ? '★ Default' : 'Set Default'}</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteWallpaper(${w.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function setDefaultWallpaper(id) {
+            const tx = db.transaction([WALLPAPER_STORE], 'readwrite');
+            const store = tx.objectStore(WALLPAPER_STORE);
+            const wallpapers = await new Promise((resolve) => {
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+            });
+
+            for (const w of wallpapers) {
+                if (w.id === id) w.isDefault = true;
+                else delete w.isDefault;
+                store.put(w);
+            }
+
+            await new Promise((resolve) => { tx.oncomplete = resolve; });
+            alert('Default wallpaper set!');
+            loadWallpapers();
+        }
+
+        async function deleteWallpaper(id) {
+            if (!confirm('Delete this wallpaper?')) return;
+            const tx = db.transaction([WALLPAPER_STORE], 'readwrite');
+            tx.objectStore(WALLPAPER_STORE).delete(id);
+            await new Promise((resolve) => { tx.oncomplete = resolve; });
+            loadWallpapers();
+        }
+
+        async function clearAllWallpapers() {
+            if (!confirm('Delete ALL wallpapers? This cannot be undone!')) return;
+            const tx = db.transaction([WALLPAPER_STORE], 'readwrite');
+            tx.objectStore(WALLPAPER_STORE).clear();
+            await new Promise((resolve) => { tx.oncomplete = resolve; });
+            loadWallpapers();
+        }
+
+        window.addEventListener('message', async (event) => {
+            if (event.data.type === 'get-fonts') {
+                const tx = db.transaction([FONT_STORE], 'readonly');
+                const fonts = await new Promise((resolve) => {
+                    const req = tx.objectStore(FONT_STORE).getAll();
+                    req.onsuccess = () => resolve(req.result);
+                });
+
+                const families = groupFonts(fonts);
+                const result = [];
+
+                Object.entries(families).forEach(([family, variants]) => {
+                    if (variants.length > 1) {
+                        result.push({
+                            name: family,
+                            data: variants[0].data,
+                            variants: variants.map(v => ({ name: v.name, data: v.data }))
+                        });
+                    } else {
+                        result.push({ name: variants[0].name, data: variants[0].data });
+                    }
+                });
+
+                event.source.postMessage({ type: 'fonts-data', fonts: result }, event.origin);
+            } else if (event.data.type === 'get-default-wallpaper') {
+                const tx = db.transaction([WALLPAPER_STORE], 'readonly');
+                const wallpapers = await new Promise((resolve) => {
+                    const req = tx.objectStore(WALLPAPER_STORE).getAll();
+                    req.onsuccess = () => resolve(req.result);
+                });
+                const defaultWp = wallpapers.find(w => w.isDefault) || wallpapers[0];
+                event.source.postMessage({ type: 'wallpaper-data', wallpaper: defaultWp || null }, event.origin);
+            }
+        });
+
+        initDB().then(() => { loadFonts(); loadWallpapers(); });
+    </script>
+</body>
+</html>
